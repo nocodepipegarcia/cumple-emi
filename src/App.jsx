@@ -99,7 +99,7 @@ const FlipCard = ({ char, colorClass, isLarge }) => {
             )}
 
             {/* Bisagra / Línea central suave */}
-            <div className="absolute top-1/2 left-0 w-full h-[2px] bg-purple-100 -translate-y-1/2 z-20 shadow-sm"></div>
+            <div className="absolute top-1/2 left-0 w-full h-[1px] bg-purple-100 -translate-y-1/2 z-20"></div>
         </div>
     );
 };
@@ -185,7 +185,7 @@ export default function App() {
                                     Próxima Aventura <Sparkles size={18} className="text-fuchsia-400" />
                                 </h1>
                                 <p className="text-purple-400 font-medium text-sm tracking-wider uppercase mt-1">
-                                    Preparando el Viaje Soñado
+                                    Preparando el viaje de Emi
                                 </p>
                             </div>
                         </div>
@@ -207,12 +207,16 @@ export default function App() {
                     <p className="text-fuchsia-500 font-bold uppercase tracking-[0.3em] text-sm mb-3 flex items-center gap-2">
                         <Star size={14} className="text-purple-400 fill-purple-400" /> Fecha de Partida <Star size={14} className="text-purple-400 fill-purple-400" />
                     </p>
-                    <div className="flex gap-2">
-                        {"10 DIC 2026".split('').map((char, idx) => (
-                            <span key={idx} className={`text-2xl sm:text-3xl font-sans font-extrabold text-purple-600 bg-white/80 px-3 py-2 rounded-xl shadow-sm border border-white ${char === ' ' ? 'bg-transparent border-transparent px-1 shadow-none' : ''}`}>
-                                {char}
-                            </span>
-                        ))}
+                    <div className="flex flex-wrap justify-center gap-1 sm:gap-2">
+                        {"10 DIC 2026".split('').map((char, idx) =>
+                            char === ' ' ? (
+                                <div key={idx} className="w-2 sm:w-3" />
+                            ) : (
+                                <span key={idx} className="text-xl sm:text-3xl font-sans font-extrabold text-purple-600 bg-white/80 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl shadow-sm border border-white">
+                                    {char}
+                                </span>
+                            )
+                        )}
                     </div>
                 </div>
 
