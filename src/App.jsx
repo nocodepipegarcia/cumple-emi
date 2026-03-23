@@ -8,7 +8,7 @@ const START_DATE  = Date.UTC(2026,  0,  1); // 1 de Enero de 2026 (referencia de
 // Componente para un bloque de countdown
 const CountdownBlock = ({ value, label, accent }) => {
     return (
-        <div className="countdown-box flex flex-col items-center px-5 py-5 sm:px-8 sm:py-7 min-w-[90px] sm:min-w-[120px]">
+        <div className="countdown-box flex flex-col items-center px-3 py-4 sm:px-8 sm:py-7 min-w-[70px] sm:min-w-[120px] flex-1">
             <span
                 key={value}
                 className="number-animate number-glow font-extrabold text-5xl sm:text-6xl md:text-7xl tracking-tight font-['Outfit']"
@@ -187,7 +187,7 @@ export default function App() {
                     </div>
 
                     {/* Horas, Minutos, Segundos */}
-                    <div className="flex flex-wrap justify-center items-center gap-3 sm:gap-4">
+                    <div className="flex justify-center items-center gap-2 sm:gap-4">
                         <CountdownBlock value={timeLeft.hours} label="Horas" accent="#c084fc" />
 
                         <div className="flex flex-col items-center gap-2 pb-6">
