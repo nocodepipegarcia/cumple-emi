@@ -1,123 +1,78 @@
-import React, { useState, useEffect } from 'react';
-import { Plane, Heart, MapPin, Sparkles, Star } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Heart, MapPin, Sparkles, Star, PartyPopper, Calendar, Clock } from 'lucide-react';
 
-// Estilos CSS para la animación 3D del reloj y el fondo rainbow en tonos cálidos
-const customStyles = `
-  .perspective-1000 {
-    perspective: 1000px;
-  }
-  @keyframes flipTop {
-    0% { transform: rotateX(0deg); }
-    100% { transform: rotateX(-90deg); }
-  }
-  @keyframes flipBottom {
-    0% { transform: rotateX(90deg); }
-    100% { transform: rotateX(0deg); }
-  }
-  .animate-flip-top {
-    animation: flipTop 0.4s ease-in forwards;
-    transform-origin: bottom;
-  }
-  .animate-flip-bottom {
-    animation: flipBottom 0.4s ease-out 0.4s forwards;
-    transform-origin: top;
-  }
-  
-  /* Animación de fondo arcoíris pastel (Púrpuras a Rosados/Rojos) */
-  @keyframes rainbowBg {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-  }
-  .bg-pastel-rainbow {
-    background: linear-gradient(-45deg, #e9d5ff, #f3e8ff, #fce7f3, #fbcfe8, #fecdd3, #ffe4e6, #e9d5ff);
-    background-size: 300% 300%;
-    animation: rainbowBg 15s ease infinite;
-  }
-`;
+// Fechas fijas en UTC para evitar diferencias por zona horaria
+const TARGET_DATE = Date.UTC(2026, 11, 10); // 10 de Diciembre de 2026
+const START_DATE  = Date.UTC(2026,  0,  1); // 1 de Enero de 2026 (referencia de progreso)
 
-// Componente para un solo dígito con animación de caída (Flip)
-const FlipCard = ({ char, colorClass, isLarge }) => {
-    const [prevChar, setPrevChar] = useState(char);
-    const [animating, setAnimating] = useState(false);
-
-    useEffect(() => {
-        if (char !== prevChar) {
-            setAnimating(true);
-            const timer = setTimeout(() => {
-                setPrevChar(char);
-                setAnimating(false);
-            }, 800); // Duración total de la animación (0.4s + 0.4s)
-            return () => clearTimeout(timer);
-        }
-    }, [char, prevChar]);
-
-    // Tamaños dinámicos dependiendo de si es "Días" (isLarge) o el resto
-    const sizeClasses = isLarge
-        ? "w-14 sm:w-20 md:w-28 lg:w-32 h-20 sm:h-28 md:h-36 lg:h-44 text-5xl sm:text-7xl md:text-8xl lg:text-9xl"
-        : "w-10 sm:w-14 md:w-16 lg:w-20 h-16 sm:h-20 md:h-24 lg:h-28 text-4xl sm:text-5xl md:text-6xl lg:text-7xl";
-
+// Componente para un bloque de countdown
+const CountdownBlock = ({ value, label, accent }) => {
     return (
-        <div className={`relative inline-flex flex-col items-center justify-center bg-white ${colorClass} font-sans tabular-nums font-bold rounded-xl shadow-[0_4px_10px_rgba(200,100,200,0.08)] border border-purple-50 mx-[2px] ${sizeClasses} perspective-1000`}>
-
-            {/* Mitad Superior - Estática (Fondo blanco opaco para ocultar) */}
-            <div className="absolute top-0 left-0 w-full h-1/2 overflow-hidden bg-white rounded-t-xl border-b border-purple-50">
-                <span className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-[50%] leading-none">
-                    {char}
-                </span>
-            </div>
-
-            {/* Mitad Inferior - Estática (Fondo completamente opaco para que no se traslape el texto) */}
-            <div className="absolute bottom-0 left-0 w-full h-1/2 overflow-hidden bg-purple-50 rounded-b-xl border-t border-purple-50 z-0">
-                <span className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-[50%] leading-none">
-                    {prevChar}
-                </span>
-            </div>
-
-            {/* Tarjeta Superior que Cae */}
-            {animating && (
-                <div
-                    className="absolute top-0 left-0 w-full h-1/2 overflow-hidden bg-white rounded-t-xl animate-flip-top shadow-[inset_0_-10px_20px_rgba(0,0,0,0.03)] border-b border-purple-50 z-10"
-                    style={{ backfaceVisibility: 'hidden' }}
-                >
-                    <span className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-[50%] leading-none">
-                        {prevChar}
-                    </span>
-                </div>
-            )}
-
-            {/* Tarjeta Inferior que Cae */}
-            {animating && (
-                <div
-                    className="absolute bottom-0 left-0 w-full h-1/2 overflow-hidden bg-purple-50 rounded-b-xl animate-flip-bottom shadow-[inset_0_10px_20px_rgba(0,0,0,0.03)] border-t border-purple-50 z-10"
-                    style={{ backfaceVisibility: 'hidden', transform: 'rotateX(90deg)' }}
-                >
-                    <span className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-[50%] leading-none">
-                        {char}
-                    </span>
-                </div>
-            )}
-
-            {/* Bisagra / Línea central suave */}
-            <div className="absolute top-1/2 left-0 w-full h-[1px] bg-purple-100 -translate-y-1/2 z-20"></div>
+        <div className="countdown-box flex flex-col items-center px-5 py-5 sm:px-8 sm:py-7 min-w-[90px] sm:min-w-[120px]">
+            <span
+                key={value}
+                className="number-animate number-glow font-extrabold text-5xl sm:text-6xl md:text-7xl tracking-tight font-['Outfit']"
+                style={{ color: accent }}
+            >
+                {value}
+            </span>
+            <span className="mt-3 text-purple-300/70 text-[10px] sm:text-xs font-semibold tracking-[0.2em] uppercase">
+                {label}
+            </span>
         </div>
     );
 };
 
-// Componente para agrupar dígitos
-const FlipGroup = ({ value, label, colorClass, isLarge }) => {
-    const chars = String(value).split('');
+// Partículas decorativas flotantes
+const Particles = () => {
+    const particles = [
+        { top: '10%', left: '15%', duration: '7s', delay: '0s' },
+        { top: '20%', right: '20%', duration: '5s', delay: '1s' },
+        { top: '60%', left: '10%', duration: '8s', delay: '2s' },
+        { top: '75%', right: '15%', duration: '6s', delay: '0.5s' },
+        { top: '40%', left: '80%', duration: '9s', delay: '3s' },
+        { top: '85%', left: '50%', duration: '6s', delay: '1.5s' },
+        { top: '30%', left: '40%', duration: '7s', delay: '2.5s' },
+        { top: '50%', right: '30%', duration: '5.5s', delay: '0.8s' },
+    ];
 
     return (
-        <div className="flex flex-col items-center mx-1 sm:mx-3 my-2">
-            <div className="flex">
-                {chars.map((char, i) => (
-                    <FlipCard key={i} char={char} colorClass={colorClass} isLarge={isLarge} />
-                ))}
+        <>
+            {particles.map((p, i) => (
+                <div
+                    key={i}
+                    className="particle"
+                    style={{
+                        top: p.top,
+                        left: p.left,
+                        right: p.right,
+                        '--duration': p.duration,
+                        '--delay': p.delay,
+                    }}
+                />
+            ))}
+        </>
+    );
+};
+
+// Barra de progreso
+const ProgressBar = ({ progress }) => {
+    const pct = Math.min(Math.max(progress, 0), 100);
+    return (
+        <div className="w-full mt-8 sm:mt-10">
+            <div className="flex justify-between items-center mb-2">
+                <span className="text-purple-300/50 text-[10px] font-semibold tracking-[0.2em] uppercase">Ene 2026</span>
+                <span className="text-purple-300/50 text-[10px] font-semibold tracking-[0.2em] uppercase">
+                    {Math.round(pct)}% del camino
+                </span>
+                <span className="text-purple-300/50 text-[10px] font-semibold tracking-[0.2em] uppercase">Dic 2026</span>
             </div>
-            <span className={`mt-3 sm:mt-4 ${colorClass} opacity-90 text-[10px] sm:text-xs md:text-sm font-bold tracking-[0.2em] uppercase font-sans`}>
-                {label}
-            </span>
+            <div className="h-1.5 w-full rounded-full bg-white/5 overflow-hidden">
+                <div
+                    className="h-full rounded-full progress-bar-fill transition-[width] duration-1000 ease-linear"
+                    style={{ width: `${pct}%` }}
+                />
+            </div>
         </div>
     );
 };
@@ -127,136 +82,157 @@ export default function App() {
         days: '000',
         hours: '00',
         minutes: '00',
-        seconds: '00'
+        seconds: '00',
     });
+    const [finished, setFinished] = useState(false);
+    const [progress, setProgress] = useState(0);
+    const intervalRef = useRef(null);
 
-    useEffect(() => {
-        // Fecha objetivo: 10 de Diciembre de 2026
-        const targetDate = new Date('2026-12-10T00:00:00').getTime();
+    const updateCountdown = useCallback(() => {
+        const now = Date.now();
+        const difference = TARGET_DATE - now;
 
-        const updateCountdown = () => {
-            const now = new Date().getTime();
-            const difference = targetDate - now;
+        // Progreso de START_DATE hacia TARGET_DATE
+        const total = TARGET_DATE - START_DATE;
+        const elapsed = now - START_DATE;
+        setProgress((elapsed / total) * 100);
 
-            if (difference <= 0) {
-                setTimeLeft({ days: '000', hours: '00', minutes: '00', seconds: '00' });
-                return;
-            }
+        if (difference <= 0) {
+            setTimeLeft({ days: '000', hours: '00', minutes: '00', seconds: '00' });
+            setFinished(true);
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+            return;
+        }
 
-            const d = Math.floor(difference / (1000 * 60 * 60 * 24));
-            const h = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-            const m = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
-            const s = Math.floor((difference % (1000 * 60)) / 1000);
+        const d = Math.floor(difference / (1000 * 60 * 60 * 24));
+        const h = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const m = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+        const s = Math.floor((difference % (1000 * 60)) / 1000);
 
-            setTimeLeft({
-                days: String(d).padStart(3, '0'),
-                hours: String(h).padStart(2, '0'),
-                minutes: String(m).padStart(2, '0'),
-                seconds: String(s).padStart(2, '0')
-            });
-        };
-
-        updateCountdown();
-        const interval = setInterval(updateCountdown, 1000);
-
-        return () => clearInterval(interval);
+        setTimeLeft({
+            days: String(d).padStart(3, '0'),
+            hours: String(h).padStart(2, '0'),
+            minutes: String(m).padStart(2, '0'),
+            seconds: String(s).padStart(2, '0'),
+        });
     }, []);
 
+    useEffect(() => {
+        updateCountdown();
+        intervalRef.current = setInterval(updateCountdown, 1000);
+        return () => clearInterval(intervalRef.current);
+    }, [updateCountdown]);
+
     return (
-        <div className="min-h-screen bg-pastel-rainbow flex flex-col items-center justify-center p-4 font-sans selection:bg-rose-200">
-            {/* Inyección de estilos de animación */}
-            <style>{customStyles}</style>
+        <div className="bg-dreamy flex flex-col items-center justify-center p-4 sm:p-6 min-h-screen font-['Outfit']">
+            <Particles />
 
-            {/* Contenedor principal del tablero */}
-            <div className="w-full max-w-5xl bg-white/70 backdrop-blur-md rounded-[2.5rem] p-6 sm:p-10 shadow-[0_20px_50px_rgba(251,113,133,0.15)] border border-white relative overflow-hidden">
+            {/* Contenedor principal */}
+            <div className="glass-card w-full max-w-3xl p-6 sm:p-10 md:p-12 relative z-10">
 
-                {/* Efecto de destellos sutiles de fondo */}
-                <div className="absolute inset-0 opacity-60 pointer-events-none bg-[radial-gradient(circle_at_center,_#ffffff_3px,_transparent_3px)] [background-size:30px_30px]"></div>
-
-                {/* Encabezado del Tablero */}
-                <div className="border-b-2 border-purple-100 pb-6 mb-8 relative z-10">
-                    <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-                        <div className="flex items-center gap-4">
-                            <div className="bg-gradient-to-br from-purple-200 to-fuchsia-200 p-3 rounded-2xl text-purple-600 shadow-sm border border-white">
-                                <Plane size={28} strokeWidth={2.5} className="-rotate-12" />
-                            </div>
-                            <div>
-                                <h1 className="text-purple-600 font-extrabold text-xl sm:text-2xl tracking-widest uppercase flex items-center gap-2">
-                                    Próxima Aventura <Sparkles size={18} className="text-fuchsia-400" />
-                                </h1>
-                                <p className="text-purple-400 font-medium text-sm tracking-wider uppercase mt-1">
-                                    Preparando el viaje de Emi
-                                </p>
-                            </div>
-                        </div>
-                        <div className="flex gap-4 sm:gap-6 text-sm font-bold uppercase tracking-widest">
-                            <div className="flex items-center gap-2 bg-white/60 px-4 py-2 rounded-full border border-white shadow-sm">
-                                <MapPin size={16} className="text-fuchsia-400" />
-                                <span className="text-purple-600">Vuelo 2026</span>
-                            </div>
-                            <div className="flex items-center gap-2 bg-white/60 px-4 py-2 rounded-full border border-white shadow-sm">
-                                <Heart size={16} className="text-rose-400 animate-pulse fill-rose-400" />
-                                <span className="text-rose-500">Confirmado</span>
-                            </div>
-                        </div>
+                {/* Header */}
+                <div className="flex flex-col items-center mb-8 sm:mb-10">
+                    <div className="flex items-center gap-3 mb-3">
+                        <Sparkles size={20} className="text-purple-400" />
+                        <h1 className="text-gradient-purple text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-wide">
+                            Próxima Aventura
+                        </h1>
+                        <Sparkles size={20} className="text-pink-400" />
                     </div>
-                </div>
-
-                {/* Información del Destino */}
-                <div className="flex flex-col items-center mb-8 relative z-10">
-                    <p className="text-fuchsia-500 font-bold uppercase tracking-[0.3em] text-sm mb-3 flex items-center gap-2">
-                        <Star size={14} className="text-purple-400 fill-purple-400" /> Fecha de Partida <Star size={14} className="text-purple-400 fill-purple-400" />
+                    <p className="text-purple-300/60 font-medium text-sm tracking-wider">
+                        Preparando el viaje de Emi
                     </p>
-                    <div className="flex flex-wrap justify-center gap-1 sm:gap-2">
-                        {"10 DIC 2026".split('').map((char, idx) =>
-                            char === ' ' ? (
-                                <div key={idx} className="w-2 sm:w-3" />
-                            ) : (
-                                <span key={idx} className="text-xl sm:text-3xl font-sans font-extrabold text-purple-600 bg-white/80 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl shadow-sm border border-white">
-                                    {char}
-                                </span>
-                            )
-                        )}
+                </div>
+
+                {/* Fecha */}
+                <div className="flex flex-col items-center mb-8 sm:mb-10">
+                    <div className="flex items-center gap-2 mb-3">
+                        <Calendar size={14} className="text-purple-400/60" />
+                        <span className="text-purple-300/50 text-xs font-semibold tracking-[0.2em] uppercase">
+                            Fecha de Partida
+                        </span>
+                    </div>
+                    <div className="date-badge text-lg sm:text-xl tracking-widest">
+                        10 · DIC · 2026
                     </div>
                 </div>
 
-                {/* Área del Contador Reversible (Split Flap) */}
-                <div className="flex flex-col items-center gap-6 sm:gap-8 relative z-10 w-full">
+                {/* Badges */}
+                <div className="flex justify-center gap-3 sm:gap-4 mb-8 sm:mb-10">
+                    <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10">
+                        <MapPin size={14} className="text-purple-400/70" />
+                        <span className="text-purple-200/70 text-xs sm:text-sm font-semibold tracking-wider">Vuelo 2026</span>
+                    </div>
+                    <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10">
+                        <Heart size={14} className="text-pink-400 animate-soft-pulse" />
+                        <span className="text-pink-200/70 text-xs sm:text-sm font-semibold tracking-wider">Confirmado</span>
+                    </div>
+                </div>
 
-                    {/* Fila 1: DÍAS */}
-                    <div className="flex justify-center bg-white/40 p-4 sm:p-8 rounded-[2rem] border border-white shadow-sm w-full max-w-2xl">
-                        <FlipGroup value={timeLeft.days} label="Días Faltantes" colorClass="text-purple-600" isLarge={true} />
+                {/* Countdown principal */}
+                <div className="flex flex-col items-center gap-6 sm:gap-8">
+
+                    {/* Días — prominente */}
+                    <div className="countdown-box flex flex-col items-center px-8 py-6 sm:px-14 sm:py-8 w-full max-w-md">
+                        <span
+                            key={timeLeft.days}
+                            className="number-animate number-glow text-gradient-purple font-extrabold text-7xl sm:text-8xl md:text-9xl tracking-tight font-['Outfit']"
+                        >
+                            {timeLeft.days}
+                        </span>
+                        <span className="mt-4 text-purple-300/60 text-xs sm:text-sm font-bold tracking-[0.25em] uppercase">
+                            Días Faltantes
+                        </span>
                     </div>
 
-                    {/* Fila 2: HORAS, MINUTOS, SEGUNDOS */}
-                    <div className="flex flex-wrap justify-center items-end bg-white/40 p-4 sm:p-6 rounded-[2rem] border border-white shadow-sm w-full gap-2 sm:gap-6">
+                    {/* Horas, Minutos, Segundos */}
+                    <div className="flex flex-wrap justify-center items-center gap-3 sm:gap-4">
+                        <CountdownBlock value={timeLeft.hours} label="Horas" accent="#c084fc" />
 
-                        <FlipGroup value={timeLeft.hours} label="Horas" colorClass="text-fuchsia-500" isLarge={false} />
-
-                        <div className="hidden sm:flex flex-col items-center justify-center pb-8 sm:pb-10 px-1">
-                            <div className="w-2 h-2 rounded-full bg-purple-300 mb-2"></div>
-                            <div className="w-2 h-2 rounded-full bg-purple-300 mt-2"></div>
+                        <div className="flex flex-col items-center gap-2 pb-6">
+                            <div className="separator-dot"></div>
+                            <div className="separator-dot"></div>
                         </div>
 
-                        <FlipGroup value={timeLeft.minutes} label="Minutos" colorClass="text-pink-500" isLarge={false} />
+                        <CountdownBlock value={timeLeft.minutes} label="Minutos" accent="#e879f9" />
 
-                        <div className="hidden sm:flex flex-col items-center justify-center pb-8 sm:pb-10 px-1">
-                            <div className="w-2 h-2 rounded-full bg-pink-300 mb-2"></div>
-                            <div className="w-2 h-2 rounded-full bg-pink-300 mt-2"></div>
+                        <div className="flex flex-col items-center gap-2 pb-6">
+                            <div className="separator-dot"></div>
+                            <div className="separator-dot"></div>
                         </div>
 
-                        <FlipGroup value={timeLeft.seconds} label="Segundos" colorClass="text-rose-400" isLarge={false} />
-
+                        <CountdownBlock value={timeLeft.seconds} label="Segundos" accent="#f472b6" />
                     </div>
-
                 </div>
 
-                {/* Pie de página del tablero */}
-                <div className="mt-10 pt-6 border-t border-purple-100 flex flex-col sm:flex-row justify-between items-center gap-4 text-purple-500 text-xs font-bold uppercase tracking-widest relative z-10">
-                    <span className="bg-white/50 px-4 py-2 rounded-full shadow-sm">Destino Esperando...</span>
-                    <span className="bg-white/50 px-4 py-2 rounded-full shadow-sm">Maletas casi listas</span>
-                </div>
+                {/* Barra de progreso */}
+                <ProgressBar progress={progress} />
 
+                {/* Mensaje cuando el countdown termina */}
+                {finished && (
+                    <div className="flex flex-col items-center gap-4 mt-10 animate-celebration">
+                        <PartyPopper size={48} className="text-fuchsia-400" />
+                        <p className="text-gradient-purple text-2xl sm:text-3xl font-extrabold tracking-wide text-center">
+                            ¡Es hora de partir, Emi!
+                        </p>
+                        <p className="text-purple-300/60 font-medium text-sm tracking-wider">
+                            La aventura comienza ahora
+                        </p>
+                    </div>
+                )}
+
+                {/* Footer */}
+                <div className="mt-10 pt-6 border-t border-white/5 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs font-semibold uppercase tracking-widest text-purple-300/40">
+                    <span className="flex items-center gap-2">
+                        <Clock size={12} />
+                        Destino Esperando...
+                    </span>
+                    <span className="flex items-center gap-2">
+                        <Star size={12} className="fill-current" />
+                        Maletas casi listas
+                    </span>
+                </div>
             </div>
         </div>
     );
